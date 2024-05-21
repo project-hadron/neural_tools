@@ -197,4 +197,5 @@ class KnowledgeIntent(AbstractKnowledgeIntentModel):
             item["sentences"] = [str(sentence) for sentence in item["sentences"]]
             # split sentences into chunks
             item["sentence_chunks"] = [item["sentences"][i:i + text_size] for i in range(0, len(item["sentences"]), text_size)]
+            pages_and_texts.append(item)
         return pa.Table.from_pylist(pages_and_texts)
