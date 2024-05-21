@@ -1,9 +1,10 @@
 import inspect
+import re
 import numpy as np
 import pandas as pd
 import pyarrow as pa
 import pyarrow.compute as pc
-
+from spacy.lang.en import English
 from nn_rag.components.commons import Commons
 from nn_rag.intent.abstract_knowledge_intent import AbstractKnowledgeIntentModel
 
@@ -110,4 +111,58 @@ class KnowledgeIntent(AbstractKnowledgeIntentModel):
             rtn_values = rtn_values.dictionary_encode()
         to_header = to_header if isinstance(to_header, str) else header
         return Commons.table_append(canonical, pa.table([rtn_values], names=[to_header]))
+
+    def sentence_split(self, canonical: pa.Table, header: str, chunk_size: int=None, seed: int=None, save_intent: bool=None,
+                          intent_level: [int, str]=None, intent_order: int=None, replace_intent: bool=None,
+                          remove_duplicates: bool=None):
+        """
+
+        :param canonical:
+        :param header: The name of the target string column
+        :param chunk_size:
+        :param seed: (optional) a seed value for the random function: default to None
+        :param save_intent: (optional) if the intent contract should be saved to the property manager
+        :param intent_level: (optional) the intent name that groups intent to create a column
+        :param intent_order: (optional) the order in which each intent should run.
+                    - If None: default's to -1
+                    - if -1: added to a level above any current instance of the intent section, level 0 if not found
+                    - if int: added to the level specified, overwriting any that already exist
+
+        :param replace_intent: (optional) if the intent method exists at the level, or default level
+                    - True - replaces the current intent method with the new
+                    - False - leaves it untouched, disregarding the new intent
+
+        :param remove_duplicates: (optional) removes any duplicate intent in any level that is identical
+        """
+        # intent persist options
+        self._set_intend_signature(self._intent_builder(method=inspect.currentframe().f_code.co_name, params=locals()),
+                                   intent_level=intent_level, intent_order=intent_order, replace_intent=replace_intent,
+                                   remove_duplicates=remove_duplicates, save_intent=save_intent)
+        # remove intent params
+        canonical = self._get_canonical(canonical)
+        header = self._extract_value(header)
+        _seed = seed if isinstance(seed, int) else self._seed()
+        nlp = English()
+        # Add a sentencizer pipeline, see https://spacy.io/api/sentencizer/
+        nlp.add_pipe("sentencizer")
+        pages_and_chunks = []
+        for item in canonical.to_pylist():
+            item["sentences"] = list(nlp(item[header]).sents)
+            # Make sure all sentences are strings
+            item["sentences"] = [str(sentence) for sentence in item["sentences"]]
+            # split sentences into chunks
+            item["sentence_chunks"] = [item["sentences"][i:i + chunk_size] for i in range(0, len(item["sentences"]), chunk_size)]
+            for sentence_chunk in item["sentence_chunks"]:
+                chunk_dict = {"page_number": item["page_number"]}
+                # Join the sentences together into a paragraph-like structure, aka a chunk (so they are a single string)
+                joined_sentence_chunk = "".join(sentence_chunk).replace("  ", " ").strip()
+                joined_sentence_chunk = re.sub(r'\.([A-Z])', r'. \1', joined_sentence_chunk)  # ".A" -> ". A" for any full-stop/capital letter combo
+                chunk_dict["sentence_chunk"] = joined_sentence_chunk
+                # Get stats about the chunk
+                chunk_dict["chunk_char_count"] = len(joined_sentence_chunk)
+                chunk_dict["chunk_word_count"] = len([word for word in joined_sentence_chunk.split(" ")])
+                chunk_dict["chunk_token_count"] = len(joined_sentence_chunk) / 4  # 1 token = ~4 characters
+                pages_and_chunks.append(chunk_dict)
+
+        return pa.Table.from_pylist(pages_and_chunks)
 

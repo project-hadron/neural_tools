@@ -5,7 +5,6 @@ from ds_core.components.abstract_component import AbstractComponent
 from nn_rag.components.commons import Commons
 from nn_rag.components.discovery import DataDiscovery
 
-
 # noinspection PyArgumentList
 class AbstractCommonComponent(AbstractComponent):
 
@@ -14,6 +13,12 @@ class AbstractCommonComponent(AbstractComponent):
     capabilities. This allows all capability instances to share common behavior in
     initialization, connectivity management, reporting and running the component.
     """
+
+    # default connectors module and handlers
+    DEFAULT_MODULE = 'nn_rag.handlers.knowledge_handlers'
+    DEFAULT_SOURCE_HANDLER = 'KnowledgeSourceHandler'
+    DEFAULT_PERSIST_HANDLER = 'KnowledgePersistHandler'
+
 
     @classmethod
     @abstractmethod

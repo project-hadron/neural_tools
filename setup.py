@@ -36,7 +36,7 @@ setup(
     name='neural_rag',
     version=find_version('nn_rag', '__init__.py'),
     description='',
-    long_description=read('README.rst'),
+    long_description=read('README.md'),
     url='http://github.com/gigas64/hadron-nn',
     author='Gigas64',
     author_email='gigas64@aistac.net',
