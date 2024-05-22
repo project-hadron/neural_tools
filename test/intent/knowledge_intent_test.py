@@ -78,7 +78,7 @@ class KnowledgeIntentTest(unittest.TestCase):
         arr1 = pa.array([1], type=pa.int64())
         arr2 = pa.array([text], pa.string())
         tbl = pa.table([arr1, arr2], names=['page_number', 'text'])
-        text_chunks = tools.text_to_sentence(tbl, header='text', num_sentence_chunk_size=3)
+        text_chunks = tools.text_profiler(tbl, header='text', num_sentence_chunk_size=3)
         # chunks
         chunks = tools.sentence_chunk(text_chunks, 'sentence_chunks')
         result = tools.chunk_embedding(chunks)
@@ -90,21 +90,7 @@ class KnowledgeIntentTest(unittest.TestCase):
         kn.save_persist_canonical(result)
         pa_tensor = kn.load_source_canonical()
         print(pa_tensor.shape)
-
-
-
-        # uri = os.path.join(os.environ['HADRON_DEFAULT_PATH'], 'dictionary.parquet')
-        # with pa.OSFile(uri, 'wb') as sink:
-        #     pa.ipc.write_tensor(result, sink)
-        #
-        # with pa.OSFile(uri, 'rb') as source:
-        #     pa_tensor = pa.ipc.read_tensor(source)
-        # print(pa_tensor.shape)
-        #
         # tensor = torch.from_numpy(pa_tensor.to_numpy)
-
-
-
 
     def test_raise(self):
         startTime = datetime.now()
