@@ -40,35 +40,31 @@ class KnowledgeSourceHandler(AbstractSourceHandler):
             file_type = load_params.pop('file_type', _ext if len(_ext) > 0 else 'txt')
         self.reset_changed()
         # parquet
-        if file_type.lower() in ['parquet', 'pqt', 'pq']:
-            if _cc.schema.startswith('http'):
-                address = io.BytesIO(requests.get(address).content)
-            return pq.read_table(address, **load_params)
+        if file_type.lower() in ['parquet']:
+            with pa.OSFile(address, 'rb') as source:
+                pa_tensor = pa.ipc.read_tensor(source)
+            return pa_tensor
         # txt
         if file_type.lower() in ['txt']:
             if _cc.schema.startswith('http'):
-                address = io.BytesIO(requests.get(address).content)
-            return
+                doc = requests.get(address).text
+            else:
+                with open(address) as f:
+                    doc = f.read()
+            text = doc.encode().decode()
+            return pa.table([text], names=['text'])
         # pdf
         if file_type.lower() in ['pdf']:
             if _cc.schema.startswith('http'):
                 request = requests.get(address)
                 filestream = io.BytesIO(request.content)
-                doc = fitz.open(stream=filestream, filetype="pdf")
+                with fitz.open(stream=filestream, filetype="pdf") as doc:
+                    doc = chr(12).join([page.get_text() for page in doc])
             else:
-                doc = fitz.open(address)
-            pages_and_texts = []
-            for page_number, page in enumerate(doc):  # iterate the document pages
-                text = page.get_text()  # get plain text encoded as UTF-8
-                pages_and_texts.append(
-                    {"page_number": page_number - 41,  # adjust page numbers since our PDF starts on page 42
-                     "page_char_count": len(text),
-                     "page_word_count": len(text.split(" ")),
-                     "page_sentence_count_raw": len(text.split(". ")),
-                     "page_token_count": len(text) / 4,  # 1 token = ~4
-                     "text": text})
-
-            return pa.Table.from_pylist(pages_and_texts)
+                with fitz.open(address) as doc:  # open document
+                    doc = chr(12).join([page.get_text() for page in doc])
+            text = doc.encode().decode()
+            return pa.table([text], names=['text'])
         raise LookupError('The source format {} is not currently supported'.format(file_type))
 
     def exists(self) -> bool:
@@ -139,21 +135,10 @@ class KnowledgePersistHandler(KnowledgeSourceHandler, AbstractPersistHandler):
             return False
         _cc = self.connector_contract
         _address = _cc.parse_address(uri=uri)
-        persist_params = kwargs if isinstance(kwargs, dict) else _cc.kwargs
-        persist_params.update(_cc.parse_query(uri=uri))
-        _, _, _ext = _address.rpartition('.')
-        if not self.connector_contract.schema.startswith('http'):
-            _path, _ = os.path.split(_address)
-            if len(_path) > 0 and not os.path.exists(_path):
-                os.makedirs(_path)
-        file_type = persist_params.pop('file_type', _ext if len(_ext) > 0 else 'parquet')
-        write_params = persist_params.pop('write_params', {})
-        # parquet
-        if file_type.lower() in ['pq', 'pqt', 'parquet']:
-            pq.write_table(canonical, _address, **write_params)
-            return True
-        # not found
-        raise LookupError('The file format {} is not currently supported for write'.format(file_type))
+        with pa.OSFile(uri, 'wb') as sink:
+            pa.ipc.write_tensor(canonical, sink)
+        return True
+
 
     def remove_canonical(self) -> bool:
         if not isinstance(self.connector_contract, ConnectorContract):

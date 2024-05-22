@@ -5,6 +5,7 @@ import pandas as pd
 import pyarrow as pa
 import pyarrow.compute as pc
 from spacy.lang.en import English
+from sentence_transformers import SentenceTransformer
 from nn_rag.components.commons import Commons
 from nn_rag.intent.abstract_knowledge_intent import AbstractKnowledgeIntentModel
 
@@ -112,14 +113,13 @@ class KnowledgeIntent(AbstractKnowledgeIntentModel):
         to_header = to_header if isinstance(to_header, str) else header
         return Commons.table_append(canonical, pa.table([rtn_values], names=[to_header]))
 
-    def text_to_chunks(self, canonical: pa.Table, header: str, chunk_size: int=None, seed: int=None, save_intent: bool=None,
-                          intent_level: [int, str]=None, intent_order: int=None, replace_intent: bool=None,
-                          remove_duplicates: bool=None):
+    def sentence_chunk(self, canonical: pa.Table, header: str, seed: int=None, save_intent: bool=None,
+                       intent_level: [int, str]=None, intent_order: int=None, replace_intent: bool=None,
+                       remove_duplicates: bool=None):
         """
 
         :param canonical:
         :param header: The name of the target string column
-        :param chunk_size:
         :param seed: (optional) a seed value for the random function: default to None
         :param save_intent: (optional) if the intent contract should be saved to the property manager
         :param intent_level: (optional) the intent name that groups intent to create a column
@@ -158,14 +158,14 @@ class KnowledgeIntent(AbstractKnowledgeIntentModel):
 
         return pa.Table.from_pylist(pages_and_chunks)
 
-    def page_to_text(self, canonical: pa.Table, header: str, text_size: int=None, seed: int=None, save_intent: bool=None,
-                     intent_level: [int, str]=None, intent_order: int=None, replace_intent: bool=None,
-                     remove_duplicates: bool=None):
+    def text_to_sentence(self, canonical: pa.Table, header: str, num_sentence_chunk_size: int=None, seed: int=None, save_intent: bool=None,
+                         intent_level: [int, str]=None, intent_order: int=None, replace_intent: bool=None,
+                         remove_duplicates: bool=None):
         """
 
         :param canonical:
         :param header: The name of the target string column
-        :param text_size:
+        :param num_sentence_chunk_size:
         :param seed: (optional) a seed value for the random function: default to None
         :param save_intent: (optional) if the intent contract should be saved to the property manager
         :param intent_level: (optional) the intent name that groups intent to create a column
@@ -196,6 +196,46 @@ class KnowledgeIntent(AbstractKnowledgeIntentModel):
             # Make sure all sentences are strings
             item["sentences"] = [str(sentence) for sentence in item["sentences"]]
             # split sentences into chunks
-            item["sentence_chunks"] = [item["sentences"][i:i + text_size] for i in range(0, len(item["sentences"]), text_size)]
+            item["sentence_chunks"] = [item["sentences"][i:i + num_sentence_chunk_size] for i in range(0, len(item["sentences"]), num_sentence_chunk_size)]
+            item["num_chunks"] = len(item["sentence_chunks"])
             pages_and_texts.append(item)
         return pa.Table.from_pylist(pages_and_texts)
+
+    def chunk_embedding(self, canonical: pa.Table, batch_size: int=None, embedding_name: str=None, device: str=None, seed: int=None, save_intent: bool=None,
+                        intent_level: [int, str]=None, intent_order: int=None, replace_intent: bool=None,
+                        remove_duplicates: bool=None):
+        """
+
+         :param canonical:
+         :param header: The name of the target string column
+         :param seed: (optional) a seed value for the random function: default to None
+         :param save_intent: (optional) if the intent contract should be saved to the property manager
+         :param intent_level: (optional) the intent name that groups intent to create a column
+         :param intent_order: (optional) the order in which each intent should run.
+                     - If None: default's to -1
+                     - if -1: added to a level above any current instance of the intent section, level 0 if not found
+                     - if int: added to the level specified, overwriting any that already exist
+
+         :param replace_intent: (optional) if the intent method exists at the level, or default level
+                     - True - replaces the current intent method with the new
+                     - False - leaves it untouched, disregarding the new intent
+
+         :param remove_duplicates: (optional) removes any duplicate intent in any level that is identical
+         """
+        # intent persist options
+        self._set_intend_signature(self._intent_builder(method=inspect.currentframe().f_code.co_name, params=locals()),
+                                   intent_level=intent_level, intent_order=intent_order, replace_intent=replace_intent,
+                                   remove_duplicates=remove_duplicates, save_intent=save_intent)
+        # remove intent params
+        canonical = self._get_canonical(canonical)
+        _seed = seed if isinstance(seed, int) else self._seed()
+        batch_size = batch_size if isinstance(batch_size, int) else 32
+        embedding_name = embedding_name if isinstance(embedding_name, str) else 'all-mpnet-base-v2'
+        device = device if isinstance(device, str) else 'cpu'
+        pages_and_chunks = canonical.to_pylist()
+        embedding_model = SentenceTransformer(model_name_or_path=embedding_name, device=device)
+        # Turn text chunks into a single list
+        text_chunks = [item["sentence_chunk"] for item in pages_and_chunks]
+        numpy_embedding = embedding_model.encode(text_chunks, batch_size=batch_size, convert_to_numpy=True)
+        return pa.Tensor.from_numpy(numpy_embedding)
+

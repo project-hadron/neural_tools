@@ -77,17 +77,16 @@ class FeatureBuilderTest(unittest.TestCase):
         cc = ConnectorContract(uri, 'module_name', 'handler')
         handler = KnowledgePersistHandler(cc)
         result = handler.load_canonical(file_type='pdf')
-        print(result.column_names)
+        c = result.column('text').combine_chunks()
+        print(len(c))
 
     def test_txt(self):
-        tbl = get_table()
-        uri = os.path.join(os.environ['HADRON_DEFAULT_PATH'], 'test.txt')
+        uri = 'https://filesamples.com/samples/document/txt/sample3.txt'
         cc = ConnectorContract(uri, 'module_name', 'handler')
         handler = KnowledgePersistHandler(cc)
-        handler.persist_canonical(tbl)
         result = handler.load_canonical()
-        self.assertEqual(tbl.column_names, result.column_names)
-        self.assertEqual(tbl.shape, result.shape)
+        c = result.column('text').combine_chunks()
+        print(len(c))
 
     def test_raise(self):
         startTime = datetime.now()

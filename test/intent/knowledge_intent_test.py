@@ -2,12 +2,10 @@ import unittest
 import os
 from pathlib import Path
 import shutil
-import ast
 from datetime import datetime
 import pandas as pd
 import pyarrow as pa
-import pyarrow.compute as pc
-import pyarrow.parquet as pq
+import torch
 from ds_core.properties.property_manager import PropertyManager
 from nn_rag.components.commons import Commons
 from nn_rag import Knowledge
@@ -61,12 +59,51 @@ class KnowledgeIntentTest(unittest.TestCase):
         except OSError:
             pass
 
-    def test_(self):
+    def test_splitting(self):
         kn = Knowledge.from_memory()
         tools: KnowledgeIntent = kn.tools
-        uri = "https://pressbooks.oer.hawaii.edu/humannutrition2/open/download?type=pdf"
+        # uri = "https://pressbooks.oer.hawaii.edu/humannutrition2/open/download?type=pdf"
+        # kn.set_source_uri(uri)
+        # tbl = kn.load_source_canonical(file_type='pdf')
+        text = ('You took too long. You are not easy to deal with. Payment Failure/Incorrect Payment. You provided '
+                'me with incorrect information. Unhappy with delay. Unsuitable advice. You never answered my question. '
+                'You did not understand my needs. I have been mis-sold. My details are not accurate. You have asked '
+                'for too much information. You were not helpful. Payment not generated/received by customer. You did '
+                'not keep me updated. Incorrect information given. The performance of my product was poor. No reply '
+                'to customer contact. Requested documentation not issued. You did not explain the terms & conditions. '
+                'Policy amendments not carried out. You did not explain the next steps/process to me. I cannot '
+                'understand your letter/comms. Standard letter inappropriate. Customer payment processed incorrectly. '
+                'All points not addressed. Could not understand the agent. Issue with terms and conditions. Misleading '
+                'information. I can not use the customer portal. your customer portal is unhelpful')
+        arr1 = pa.array([1], type=pa.int64())
+        arr2 = pa.array([text], pa.string())
+        tbl = pa.table([arr1, arr2], names=['page_number', 'text'])
+        text_chunks = tools.text_to_sentence(tbl, header='text', num_sentence_chunk_size=3)
+        # chunks
+        chunks = tools.sentence_chunk(text_chunks, 'sentence_chunks')
+        result = tools.chunk_embedding(chunks)
+
+        uri = os.path.join(os.environ['HADRON_DEFAULT_PATH'], 'dictionary.parquet')
         kn.set_source_uri(uri)
-        tbl = kn.load_source_canonical(file_type='pdf')
+        kn.set_persist_uri(uri)
+
+        kn.save_persist_canonical(result)
+        pa_tensor = kn.load_source_canonical()
+        print(pa_tensor.shape)
+
+
+
+        # uri = os.path.join(os.environ['HADRON_DEFAULT_PATH'], 'dictionary.parquet')
+        # with pa.OSFile(uri, 'wb') as sink:
+        #     pa.ipc.write_tensor(result, sink)
+        #
+        # with pa.OSFile(uri, 'rb') as source:
+        #     pa_tensor = pa.ipc.read_tensor(source)
+        # print(pa_tensor.shape)
+        #
+        # tensor = torch.from_numpy(pa_tensor.to_numpy)
+
+
 
 
     def test_raise(self):
