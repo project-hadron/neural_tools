@@ -144,6 +144,7 @@ class KnowledgeIntent(AbstractKnowledgeIntentModel):
         canonical = self._get_canonical(canonical)
         header = self._extract_value(header)
         header = header if isinstance(header, str) else 'text'
+        num_sentence_chunk_size = num_sentence_chunk_size if isinstance(num_sentence_chunk_size, int) else 10
         _seed = seed if isinstance(seed, int) else self._seed()
         nlp = English()
         nlp.add_pipe("sentencizer")
