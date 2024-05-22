@@ -77,8 +77,7 @@ class FeatureBuilderTest(unittest.TestCase):
         cc = ConnectorContract(uri, 'module_name', 'handler')
         handler = KnowledgePersistHandler(cc)
         result = handler.load_canonical(file_type='pdf')
-        c = result.column('text').combine_chunks()
-        print(len(c))
+        print(result.shape)
 
     def test_txt(self):
         uri = 'https://filesamples.com/samples/document/txt/sample3.txt'
