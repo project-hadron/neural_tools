@@ -46,8 +46,8 @@ class Knowledge(AbstractCommonComponent):
          :return: the initialised class instance
          """
         pm_file_type = pm_file_type if isinstance(pm_file_type, str) else 'json'
-        pm_module = pm_module if isinstance(pm_module, str) else cls.DEFAULT_MODULE
-        pm_handler = pm_handler if isinstance(pm_handler, str) else cls.DEFAULT_PERSIST_HANDLER
+        pm_module = pm_module if isinstance(pm_module, str) else cls.HADRON_PM_MODULE
+        pm_handler = pm_handler if isinstance(pm_handler, str) else cls.HADRON_PM_HANDLER
         _pm = KnowledgePropertyManager(task_name=task_name, creator=creator)
         _intent_model = KnowledgeIntent(property_manager=_pm, default_save_intent=default_save_intent,
                                              default_intent_level=default_intent_level,

@@ -81,15 +81,9 @@ class KnowledgeIntentTest(unittest.TestCase):
         text_chunks = tools.text_profiler(tbl, header='text', num_sentence_chunk_size=3)
         # chunks
         chunks = tools.sentence_chunk(text_chunks, 'sentence_chunks')
-        result = tools.chunk_embedding(chunks)
+        embedding = tools.chunk_embedding(chunks)
+        print(embedding.shape)
 
-        uri = os.path.join(os.environ['HADRON_DEFAULT_PATH'], 'dictionary.parquet')
-        kn.set_source_uri(uri)
-        kn.set_persist_uri(uri)
-
-        kn.save_persist_canonical(result)
-        pa_tensor = kn.load_source_canonical()
-        print(pa_tensor.shape)
         # tensor = torch.from_numpy(pa_tensor.to_numpy)
 
     def test_raise(self):

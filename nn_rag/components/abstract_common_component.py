@@ -4,6 +4,7 @@ import pyarrow as pa
 from ds_core.components.abstract_component import AbstractComponent
 from nn_rag.components.commons import Commons
 from nn_rag.components.discovery import DataDiscovery
+from ds_core.handlers.base_handlers import BasePersistHandler
 
 # noinspection PyArgumentList
 class AbstractCommonComponent(AbstractComponent):
@@ -15,10 +16,12 @@ class AbstractCommonComponent(AbstractComponent):
     """
 
     # default connectors module and handlers
+
     DEFAULT_MODULE = 'nn_rag.handlers.knowledge_handlers'
     DEFAULT_SOURCE_HANDLER = 'KnowledgeSourceHandler'
     DEFAULT_PERSIST_HANDLER = 'KnowledgePersistHandler'
-
+    HADRON_PM_MODULE = 'ds_core.handlers.base_handlers'
+    HADRON_PM_HANDLER = 'BasePersistHandler'
 
     @classmethod
     @abstractmethod
