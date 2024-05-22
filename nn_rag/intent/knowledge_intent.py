@@ -113,13 +113,12 @@ class KnowledgeIntent(AbstractKnowledgeIntentModel):
         to_header = to_header if isinstance(to_header, str) else header
         return Commons.table_append(canonical, pa.table([rtn_values], names=[to_header]))
 
-    def sentence_chunk(self, canonical: pa.Table, header: str, seed: int=None, save_intent: bool=None,
+    def sentence_chunk(self, canonical: pa.Table, seed: int=None, save_intent: bool=None,
                        intent_level: [int, str]=None, intent_order: int=None, replace_intent: bool=None,
                        remove_duplicates: bool=None):
         """
 
         :param canonical:
-        :param header: The name of the target string column
         :param seed: (optional) a seed value for the random function: default to None
         :param save_intent: (optional) if the intent contract should be saved to the property manager
         :param intent_level: (optional) the intent name that groups intent to create a column
@@ -140,7 +139,6 @@ class KnowledgeIntent(AbstractKnowledgeIntentModel):
                                    remove_duplicates=remove_duplicates, save_intent=save_intent)
         # remove intent params
         canonical = self._get_canonical(canonical)
-        header = self._extract_value(header)
         _seed = seed if isinstance(seed, int) else self._seed()
         pages_and_chunks = []
         for item in canonical.to_pylist():
