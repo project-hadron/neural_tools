@@ -5,6 +5,7 @@ import pyarrow.compute as pc
 from pyarrow.lib import ArrowNotImplementedError
 from ds_core.intent.abstract_intent import AbstractIntentModel
 from nn_rag.components.commons import Commons
+from ds_core.handlers.abstract_handlers import ConnectorContract
 from nn_rag.managers.knowledge_property_manager import KnowledgePropertyManager
 
 class AbstractKnowledgeIntentModel(AbstractIntentModel):
