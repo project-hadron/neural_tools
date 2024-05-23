@@ -144,7 +144,7 @@ class Controller(AbstractComponent):
         return super().scratch_pad()
 
     @property
-    def intent_model(self) -> ControllerIntentModel:
+    def tools(self) -> ControllerIntentModel:
         """The intent model instance"""
         return self._intent_model
 
