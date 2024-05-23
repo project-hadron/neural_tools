@@ -59,6 +59,26 @@ class KnowledgeIntentTest(unittest.TestCase):
         except OSError:
             pass
 
+    def test_chunk(self):
+        kn = Knowledge.from_memory()
+        tools: KnowledgeIntent = kn.tools
+        text = ('You took too long. You are not easy to deal with. Payment Failure/Incorrect Payment. You provided '
+                'me with incorrect information. Unhappy with delay. Unsuitable advice. You never answered my question. '
+                'You did not understand my needs. I have been mis-sold. My details are not accurate. You have asked '
+                'for too much information. You were not helpful. Payment not generated/received by customer. You did '
+                'not keep me updated. Incorrect information given. The performance of my product was poor. No reply '
+                'to customer contact. Requested documentation not issued. You did not explain the terms & conditions. '
+                'Policy amendments not carried out. You did not explain the next steps/process to me. I cannot '
+                'understand your letter/comms. Standard letter inappropriate. Customer payment processed incorrectly. '
+                'All points not addressed. Could not understand the agent. Issue with terms and conditions. Misleading '
+                'information. I can not use the customer portal. your customer portal is unhelpful')
+        arr1 = pa.array([1], type=pa.int64())
+        arr2 = pa.array([text], pa.string())
+        tbl = pa.table([arr1, arr2], names=['page_number', 'text'])
+        text_chunks = tools.text_profiler(tbl)
+        len(text_chunks)
+
+
     def test_splitting(self):
         kn = Knowledge.from_memory()
         tools: KnowledgeIntent = kn.tools

@@ -113,13 +113,14 @@ class KnowledgeIntent(AbstractKnowledgeIntentModel):
         to_header = to_header if isinstance(to_header, str) else header
         return Commons.table_append(canonical, pa.table([rtn_values], names=[to_header]))
 
-    def text_profiler(self, canonical: pa.Table, header: str=None, num_sentence_chunk_size: int=None, seed: int=None,
+    def text_profiler(self, canonical: pa.Table, profile_name: str, header: str=None, num_sentence_chunk_size: int=None, seed: int=None,
                       save_intent: bool=None, intent_level: [int, str]=None, intent_order: int=None,
                       replace_intent: bool=None, remove_duplicates: bool=None):
         """ Taking a Table with a text column, returning the profile of that text including sentence text ready for
         sentence chunking.
 
         :param canonical: a Table with a text column
+        :param profile_name: The label name for the profile
         :param header: (optional) The name of the target text column, default 'text'
         :param num_sentence_chunk_size: (optional) the number of sentences to chunk, default is 10
         :param seed: (optional) a seed value for the random function: default to None
@@ -150,6 +151,7 @@ class KnowledgeIntent(AbstractKnowledgeIntentModel):
         nlp.add_pipe("sentencizer")
         pages_and_texts = []
         for page_number, item in enumerate(canonical.to_pylist()):
+            item['profile_name'] = profile_name
             item['page_number'] = page_number
             item['char_count'] = len(item[header])
             item['word_count'] = len(item[header].split(" "))
